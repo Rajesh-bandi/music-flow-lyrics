@@ -9,11 +9,10 @@ The GitHub CLI login on this machine is currently invalid. Re-authenticate, then
 ```bash
 gh auth login
 cd /home/rajesh/Work/music-flow-lyrics
-git init -b main
-git add .
-git commit -m "Initial Music Flow with Synced Lyrics release"
 gh repo create music-flow-lyrics --public --source=. --remote=origin --push
 ```
+
+The release is already committed locally. If you edit it first, commit your edits before running `gh repo create`.
 
 If you create the repository in the GitHub website instead, make it public and empty, then push this folder to its `main` branch.
 
