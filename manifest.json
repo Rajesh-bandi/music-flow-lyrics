@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.rajesh-bandi.music-flow",
+  "name": "Music Flow with Synced Lyrics",
+  "version": "1.0.0",
+  "author": "Rajesh Bandi",
+  "license": "MIT",
+  "description": "A PipeWire visualizer, media controller, source selector, and optional synchronized lyrics bar widget.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Music Flow",
+    "description": "MPRIS soundwave visualizer with floating player window",
+    "category": "Media",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.media"
+  }
+}

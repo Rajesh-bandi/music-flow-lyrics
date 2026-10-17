@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.rajesh-bandi.music-flow-lyrics",
+  "name": "Synced Lyrics",
+  "version": "1.0.0",
+  "author": "Rajesh Bandi",
+  "license": "MIT",
+  "description": "Synced lyrics as an independently positioned bar widget",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Synced Lyrics",
+    "description": "Shows current synced lyrics when enabled from Music Flow",
+    "category": "Media",
+    "allowMultiple": false
+  }
+}
