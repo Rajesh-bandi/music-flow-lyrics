@@ -6,6 +6,9 @@ This is a community-maintained derivative of [Omarchy Music Flow by Clifford Bai
 
 ![Music Flow preview](preview.png)
 
+### Synced Lyrics
+![Synced lyrics](synced-lyrics.png)
+
 ## Features
 
 - Detects MPRIS players and active PipeWire audio, including Spotify, browser media, and MPV.
