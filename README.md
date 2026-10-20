@@ -4,7 +4,7 @@ An Omarchy Quickshell media controller with a live audio visualizer and an optio
 
 This is a community-maintained derivative of [Omarchy Music Flow by Clifford Baidoo](https://github.com/Clifford-Baidoo/omarchy-music-flow). The original MIT license and copyright notice are retained. See [CHANGELOG.md](CHANGELOG.md) for changes in this fork.
 
-![Music Flow preview](preview.png)
+![Music Flow media controls](media-controls.png)
 
 ### Synced Lyrics
 ![Synced lyrics](synced-lyrics.png)
