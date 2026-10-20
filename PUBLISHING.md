@@ -63,3 +63,7 @@ The marketplace requires all five checklist boxes checked and asks the plugin ow
 After you create the issue, marketplace automation checks the repository and posts its result. Fix any reported problems in GitHub and edit the same issue to rerun validation. A maintainer must approve the exact validated commit before it appears on the site.
 
 The marketplace installs the root plugin directly. The README also documents `git clone` and `./install.sh` for users who want source installation with automatic bar configuration.
+
+## 4. Publish a newer version of an existing listing
+
+After pushing a release commit, open the [plugin verification form](https://github.com/omacom/omarchy-plugin-marketplace/issues/new?template=verify-plugin.yml) and choose **Verify and publish a newer upstream commit**. Submit the existing plugin ID (`io.github.rajesh-bandi.music-flow`), this repository URL, and the full 40-character SHA of the repository's current `main` HEAD. The existing marketplace snapshot stays active until the update passes compatibility and security checks and a maintainer approves publication.
