@@ -7,8 +7,8 @@ to install/update/uninstall at once, instead of relying on remembering to
 port it into three files - the exact kind of drift that caused this plugin's
 original stale-template-id bug.
 
-Invocation contract: PLUGIN_ID, LYRICS_PLUGIN_ID, STOCK_PLUGIN_ID, BAR_SECTION
-and BAR_ANCHOR_ID are read from the environment
+Invocation contract: PLUGIN_ID, STOCK_PLUGIN_ID, BAR_SECTION and BAR_ANCHOR_ID
+are read from the environment
 so the calling shell script remains the single source of truth for those
 ids; --action selects enable (install/update) or disable (uninstall); and
 --bootstrap (install only) allows building a default shell.json from scratch
@@ -138,7 +138,7 @@ def _default_config(anchor_id):
     }
 
 
-def enable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, config_path, bootstrap):
+def enable(plugin_id, stock_plugin_id, section, anchor_id, config_path, bootstrap):
     if bootstrap:
         # Installer: shell.json may not exist yet, or a stray copy might be
         # sitting under OMARCHY_PATH instead. Try each candidate in turn and
@@ -194,16 +194,13 @@ def enable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, con
     # omarchy.media entry (and legacy per-user clones) are still dropped
     # without preservation - only the plugin id's own settings survive.
     preserved_entry = None
-    preserved_lyrics_entry = None
     for sec in ["left", "center", "right"]:
         if sec in layout and isinstance(layout[sec], list):
             kept = []
             for item in layout[sec]:
-                if isinstance(item, dict) and (item.get("id") in [plugin_id, lyrics_plugin_id, stock_plugin_id, "custom.lyrics"] or str(item.get("id", "")).endswith(".media")):
+                if isinstance(item, dict) and (item.get("id") in [plugin_id, stock_plugin_id, "custom.lyrics"] or str(item.get("id", "")).endswith(".media")):
                     if item.get("id") == plugin_id:
                         preserved_entry = dict(item)
-                    elif item.get("id") == lyrics_plugin_id:
-                        preserved_lyrics_entry = dict(item)
                     continue
                 kept.append(item)
             layout[sec] = kept
@@ -223,12 +220,6 @@ def enable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, con
     if not inserted:
         target.append(entry)
 
-    # Keep lyrics as an independently positionable companion widget while
-    # placing it beside Music Flow by default.
-    lyrics_entry = preserved_lyrics_entry if preserved_lyrics_entry is not None else {"id": lyrics_plugin_id}
-    lyrics_entry["id"] = lyrics_plugin_id
-    target.insert(target.index(entry) + 1, lyrics_entry)
-
     # 4. Disable the stock media plugin to prevent duplicate service collision
     disabled = config.setdefault("disabledPlugins", [])
     if stock_plugin_id not in disabled:
@@ -238,12 +229,12 @@ def enable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, con
     _atomic_write_json(config_path, config, mode=existing_mode)
 
     if bootstrap:
-        print(f"Status bar layout updated: {plugin_id} and {lyrics_plugin_id} registered in shell.json.")
+        print(f"Status bar layout updated: {plugin_id} registered in shell.json.")
     else:
         print(f"Layout verified: {plugin_id} is active in shell.json.")
 
 
-def disable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, config_path):
+def disable(plugin_id, stock_plugin_id, section, anchor_id, config_path):
     if not os.path.isfile(config_path):
         return
 
@@ -258,7 +249,7 @@ def disable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, co
     layout = config.get("bar", {}).get("layout", {})
     for sec in ["left", "center", "right"]:
         if sec in layout and isinstance(layout[sec], list):
-            layout[sec] = [item for item in layout[sec] if not (isinstance(item, dict) and item.get("id") in [plugin_id, lyrics_plugin_id, "custom.lyrics"])]
+            layout[sec] = [item for item in layout[sec] if not (isinstance(item, dict) and item.get("id") in [plugin_id, "custom.lyrics"])]
 
     # A bar-widget's "enabled" state is derived from its presence in the
     # layout, not from disabledPlugins - so removing io.github.rajesh-bandi.music-flow without
@@ -289,16 +280,15 @@ def main():
     args = parser.parse_args()
 
     plugin_id = os.environ["PLUGIN_ID"]
-    lyrics_plugin_id = os.environ["LYRICS_PLUGIN_ID"]
     stock_plugin_id = os.environ["STOCK_PLUGIN_ID"]
     section = os.environ["BAR_SECTION"]
     anchor_id = os.environ["BAR_ANCHOR_ID"]
     config_path = os.path.expanduser("~/.config/omarchy/shell.json")
 
     if args.action == "enable":
-        enable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, config_path, args.bootstrap)
+        enable(plugin_id, stock_plugin_id, section, anchor_id, config_path, args.bootstrap)
     else:
-        disable(plugin_id, lyrics_plugin_id, stock_plugin_id, section, anchor_id, config_path)
+        disable(plugin_id, stock_plugin_id, section, anchor_id, config_path)
 
 
 if __name__ == "__main__":

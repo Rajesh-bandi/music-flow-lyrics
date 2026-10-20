@@ -15,12 +15,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Keep these in lockstep with install.sh - both scripts must agree on ids.
 PLUGIN_ID="io.github.rajesh-bandi.music-flow"
-LYRICS_PLUGIN_ID="io.github.rajesh-bandi.music-flow-lyrics"
 STOCK_PLUGIN_ID="omarchy.media"
 BAR_SECTION="left"
 BAR_ANCHOR_ID="omarchy.workspaces"
 TARGET_DIR="${HOME}/.config/omarchy/plugins/${PLUGIN_ID}"
-LYRICS_DIR="${HOME}/.config/omarchy/plugins/${LYRICS_PLUGIN_ID}"
 
 echo -e "${YELLOW}==>${NC} Uninstalling ${RED}Omarchy Music Flow${NC} [${PLUGIN_ID}]..."
 
@@ -32,15 +30,10 @@ if [ -d "${TARGET_DIR}" ]; then
     echo -e "${BLUE}==>${NC} Removed plugin directory: ${TARGET_DIR}"
     echo -e "${BLUE}==>${NC} Backup saved to: ${BACKUP_DIR}"
 fi
-if [ -d "${LYRICS_DIR}" ] && [ ! -L "${LYRICS_DIR}" ]; then
-    LYRICS_BACKUP_DIR="$(dirname "${LYRICS_DIR}")/.$(basename "${LYRICS_DIR}").bak.$(date +%Y%m%d%H%M%S)"
-    mv "${LYRICS_DIR}" "${LYRICS_BACKUP_DIR}"
-    echo -e "${BLUE}==>${NC} Lyrics companion backup saved to: ${LYRICS_BACKUP_DIR}"
-fi
 
 # Clean up configuration in shell.json
 PLUGIN_ID="${PLUGIN_ID}" STOCK_PLUGIN_ID="${STOCK_PLUGIN_ID}" \
-LYRICS_PLUGIN_ID="${LYRICS_PLUGIN_ID}" BAR_SECTION="${BAR_SECTION}" BAR_ANCHOR_ID="${BAR_ANCHOR_ID}" \
+BAR_SECTION="${BAR_SECTION}" BAR_ANCHOR_ID="${BAR_ANCHOR_ID}" \
 python3 "${SCRIPT_DIR}/scripts/configure_bar.py" --action disable
 
 # Reload Omarchy Shell

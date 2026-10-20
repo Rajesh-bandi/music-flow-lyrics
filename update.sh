@@ -16,7 +16,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Single source of truth for every id this script and the config-writer below
 # touch, so the plugin id never has to be duplicated (and drift) across files.
 PLUGIN_ID="io.github.rajesh-bandi.music-flow"
-LYRICS_PLUGIN_ID="io.github.rajesh-bandi.music-flow-lyrics"
 STOCK_PLUGIN_ID="omarchy.media"
 BAR_SECTION="left"
 BAR_ANCHOR_ID="omarchy.workspaces"
@@ -53,6 +52,18 @@ if [ -d "${LEGACY_DIR}" ] && [ ! -L "${LEGACY_DIR}" ]; then
     echo -e "${BLUE}==>${NC} Moved legacy plugin directory to: ${LEGACY_BACKUP_DIR}"
 fi
 
+# This release now includes lyrics in the root widget. Preserve the old
+# separate plugin directories outside the discovery path so a source-based
+# update cannot leave a stale keep-loaded companion behind.
+for old_id in custom.media custom.lyrics; do
+    old_dir="${HOME}/.config/omarchy/plugins/${old_id}"
+    if [ -d "${old_dir}" ] && [ ! -L "${old_dir}" ]; then
+        old_backup="$(dirname "${old_dir}")/.${old_id}.bak.$(date +%Y%m%d%H%M%S)"
+        mv "${old_dir}" "${old_backup}"
+        echo -e "${BLUE}==>${NC} Preserved previous ${old_id} at ${old_backup}"
+    fi
+done
+
 # 3. Copy updated plugin files
 #
 # Routed through a fresh mktemp name + mv instead of `cp -f src dest`
@@ -87,26 +98,10 @@ install_plugin_file "${SCRIPT_DIR}/manifest.json" "manifest.json"
 
 echo -e "${BLUE}==>${NC} Plugin files synchronized to: ${TARGET_DIR}"
 
-LYRICS_DIR="${HOME}/.config/omarchy/plugins/${LYRICS_PLUGIN_ID}"
-mkdir -p "${LYRICS_DIR}"
-for spec in "BarWidget.qml:BarWidget.qml" "manifest.json.in:manifest.json"; do
-    src_name="${spec%%:*}"
-    dest_name="${spec#*:}"
-    tmp=$(mktemp -p "${LYRICS_DIR}" ".${dest_name}.XXXXXX")
-    PLUGIN_TMP_FILES+=("${tmp}")
-    cp -f "${SCRIPT_DIR}/companions/synced-lyrics/${src_name}" "${tmp}"
-    chmod 0644 "${tmp}"
-    mv -f "${tmp}" "${LYRICS_DIR}/${dest_name}"
-done
-
 # 4. Catch manifest/schema problems before they get wired into the bar
 if command -v omarchy >/dev/null 2>&1; then
     if ! omarchy plugin validate "${TARGET_DIR}"; then
         echo -e "${RED}==> Error:${NC} updated plugin failed validation, aborting before touching your bar config." >&2
-        exit 1
-    fi
-    if ! omarchy plugin validate "${LYRICS_DIR}"; then
-        echo -e "${RED}==> Error:${NC} lyrics companion failed validation, aborting before touching your bar config." >&2
         exit 1
     fi
 fi
@@ -135,7 +130,7 @@ fi
 # 6. Verify and update status bar layout in ~/.config/omarchy/shell.json
 echo -e "${BLUE}==>${NC} Verifying status bar configuration in ~/.config/omarchy/shell.json..."
 PLUGIN_ID="${PLUGIN_ID}" STOCK_PLUGIN_ID="${STOCK_PLUGIN_ID}" \
-LYRICS_PLUGIN_ID="${LYRICS_PLUGIN_ID}" BAR_SECTION="${BAR_SECTION}" BAR_ANCHOR_ID="${BAR_ANCHOR_ID}" \
+BAR_SECTION="${BAR_SECTION}" BAR_ANCHOR_ID="${BAR_ANCHOR_ID}" \
 python3 "${SCRIPT_DIR}/scripts/configure_bar.py" --action enable
 
 # 7. Restart Omarchy Shell to apply updates

@@ -266,9 +266,140 @@ BarWidget {
     return root.visualizerColor
   }
 
+  property bool lyricsOpen: false
+  property var lyricLines: []
+  property var lyricTimes: []
+  property var currentLyricWords: []
+  property real lyricWordProgress: 0
+  property string lyricsStatus: ""
+  property string lyricsRequestKey: ""
+  property int currentLyricIndex: -1
+
+  function lyricMarkup() {
+    var words = root.currentLyricWords || []
+    var completed = root.lyricWordProgress * words.length
+    return words.map(function(word, index) {
+      var safeWord = String(word).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
+      var color = index < completed ? Util.alpha(root.visualizerColor, 0.28) : root.visualizerColor
+      return "<font color=\"" + color + "\">" + safeWord + "</font>"
+    }).join(" ")
+  }
+
+  Process {
+    id: lyricsProcess
+    stdout: StdioCollector {
+      id: lyricsOutput
+      waitForEnd: true
+    }
+  }
+
+  function loadLyrics() {
+    if (!root.title || !root.activePlayer) return
+    var requestKey = root.artist + "\n" + root.title
+    root.lyricsRequestKey = requestKey
+    root.lyricsStatus = "Loading lyrics..."
+    root.lyricLines = []
+    root.lyricTimes = []
+    root.currentLyricWords = []
+    root.lyricWordProgress = 0
+    root.currentLyricIndex = -1
+    lyricsProcess.running = false
+    lyricsProcess.command = [
+      "curl", "-fsSL", "--max-time", "8", "--proto", "=https",
+      "https://lrclib.net/api/get?artist_name=" + encodeURIComponent(root.artist)
+        + "&track_name=" + encodeURIComponent(root.title)
+    ]
+    lyricsProcess.running = true
+  }
+
   function openLyrics() {
     if (!root.title || !root.activePlayer) return
-    Quickshell.execDetached(["omarchy-shell", "io.github.rajesh-bandi.music-flow-lyrics", "toggle"])
+    if (root.lyricsOpen) {
+      root.lyricsOpen = false
+      return
+    }
+    root.lyricsOpen = true
+    root.loadLyrics()
+  }
+
+  onTitleChanged: if (root.lyricsOpen) loadLyrics()
+  onArtistChanged: if (root.lyricsOpen) loadLyrics()
+  onCurrentLyricIndexChanged: {
+    lyricText.x = 0
+    if (lyricScroll.running) lyricScroll.restart()
+  }
+
+  function updateLyricIndex() {
+    if (root.lyricLines.length === 0 || root.trackLength <= 0) return
+    var nextIndex = -1
+    var progress = 0
+    if (root.lyricTimes.length === root.lyricLines.length) {
+      for (var i = 0; i < root.lyricTimes.length; i++) {
+        if (root.trackPosition >= root.lyricTimes[i]) nextIndex = i
+        else break
+      }
+      nextIndex = Math.max(0, nextIndex)
+      var start = root.lyricTimes[nextIndex]
+      var end = nextIndex + 1 < root.lyricTimes.length ? root.lyricTimes[nextIndex + 1] : root.trackLength
+      progress = end > start ? Math.max(0, Math.min(1, (root.trackPosition - start) / (end - start))) : 0
+    } else {
+      nextIndex = Math.min(root.lyricLines.length - 1,
+        Math.floor((root.trackPosition / root.trackLength) * root.lyricLines.length))
+      var lineDuration = root.trackLength / root.lyricLines.length
+      progress = lineDuration > 0 ? (root.trackPosition % lineDuration) / lineDuration : 0
+    }
+    if (nextIndex !== root.currentLyricIndex) {
+      root.currentLyricIndex = nextIndex
+      root.currentLyricWords = String(root.lyricLines[nextIndex] || "").trim().split(/\s+/).filter(function(word) { return word !== "" })
+    }
+    root.lyricWordProgress = progress
+  }
+
+  Timer {
+    interval: 250
+    running: root.lyricsOpen
+    repeat: true
+    onTriggered: {
+      root.syncTrackPosition()
+      root.updateLyricIndex()
+    }
+  }
+
+  Connections {
+    target: lyricsProcess
+    function onExited(exitCode) {
+      if (root.lyricsRequestKey !== root.artist + "\n" + root.title) return
+      if (exitCode !== 0) {
+        root.lyricsStatus = "Lyrics are unavailable for this track."
+        return
+      }
+      try {
+        var result = JSON.parse(lyricsOutput.text || "")
+        var synced = String(result.syncedLyrics || "").trim()
+        root.lyricLines = []
+        root.lyricTimes = []
+        root.currentLyricWords = []
+        root.lyricWordProgress = 0
+        if (synced) {
+          var timestampPattern = /^\[(\d+):(\d{2}(?:\.\d{1,3})?)\]\s*(.*)$/
+          synced.split(/\r?\n/).forEach(function(line) {
+            var match = line.match(timestampPattern)
+            if (!match || !match[3].trim()) return
+            root.lyricTimes.push(Number(match[1]) * 60 + Number(match[2]))
+            root.lyricLines.push(match[3].trim())
+          })
+        }
+        if (root.lyricLines.length === 0) {
+          var plain = String(result.plainLyrics || "").trim()
+          root.lyricLines = plain ? plain.split(/\r?\n/).filter(function(line) { return line.trim() !== "" }) : []
+        }
+        root.lyricsStatus = root.lyricLines.length > 0 ? "" : "Lyrics are unavailable for this track."
+        root.updateLyricIndex()
+      } catch (error) {
+        root.lyricsStatus = "Lyrics could not be loaded."
+      }
+    }
   }
 
   readonly property bool hasMedia: activePlayer !== null && (Boolean(title) || Boolean(isPlaying) || Boolean(activePlayer.trackTitle || activePlayer.trackArtist))
@@ -422,7 +553,7 @@ BarWidget {
   }
 
   visible: true
-  implicitWidth: pill.width + Style.space(8)
+  implicitWidth: pill.width + lyricsStrip.width + (lyricsStrip.width > 0 ? Style.space(8) : 0) + Style.space(8)
   implicitHeight: barSize
 
   Behavior on implicitWidth {
@@ -719,6 +850,92 @@ BarWidget {
     }
   }
 
+  // Lyrics render inline beside this plugin, so a marketplace install needs
+  // only the root plugin and never depends on a separately installed widget.
+  Item {
+    id: lyricsStrip
+    x: pill.width + Style.space(8)
+    anchors.verticalCenter: parent.verticalCenter
+    height: barSize
+    width: root.lyricsOpen ? Style.space(300) : 0
+    clip: true
+    visible: width > 0
+
+    Behavior on width { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+
+    Item {
+      anchors.fill: parent
+      anchors.leftMargin: Style.space(8)
+      anchors.rightMargin: Style.space(4)
+      clip: true
+
+      Item {
+        id: lyricViewport
+        anchors.fill: parent
+        visible: root.lyricsStatus === "" && root.currentLyricIndex >= 0
+        clip: true
+        opacity: visible ? 1 : 0
+        scale: visible ? 1 : 0.96
+        Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
+        Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.InOutQuad } }
+
+        Text {
+          id: lyricText
+          x: 0
+          height: parent.height
+          width: Math.max(parent.width, implicitWidth)
+          anchors.verticalCenter: parent.verticalCenter
+          text: root.lyricMarkup()
+          textFormat: Text.RichText
+          horizontalAlignment: Text.AlignLeft
+          verticalAlignment: Text.AlignVCenter
+          wrapMode: Text.NoWrap
+          color: root.visualizerColor
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.bodySmall
+          font.bold: true
+        }
+
+        SequentialAnimation {
+          id: lyricScroll
+          running: root.lyricsOpen && lyricText.width > lyricViewport.width
+          loops: Animation.Infinite
+          PauseAnimation { duration: 1100 }
+          NumberAnimation {
+            target: lyricText
+            property: "x"
+            to: -(lyricText.width - lyricViewport.width)
+            duration: Math.max(1800, (lyricText.width - lyricViewport.width) * 28)
+            easing.type: Easing.Linear
+          }
+          PauseAnimation { duration: 800 }
+          NumberAnimation { target: lyricText; property: "x"; to: 0; duration: 450; easing.type: Easing.OutQuad }
+        }
+      }
+
+      Text {
+        anchors.left: parent.left
+        anchors.right: closeLyrics.left
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.lyricsStatus !== ""
+        text: root.lyricsStatus || "Loading lyrics..."
+        color: Qt.darker(root.bar ? root.bar.foreground : Color.foreground, 1.2)
+        font.family: root.bar ? root.bar.fontFamily : Style.font.family
+        font.pixelSize: Style.font.bodySmall
+        elide: Text.ElideRight
+      }
+
+      Button {
+        id: closeLyrics
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        iconText: "󰅖"
+        foreground: root.bar ? root.bar.foreground : Color.foreground
+        onClicked: root.lyricsOpen = false
+      }
+    }
+  }
+
   // Interactive Bar Click Area
   MouseArea {
     id: clickArea
@@ -918,7 +1135,7 @@ BarWidget {
 
         Button {
           iconText: "󰏉"
-          foreground: root.bar ? root.bar.foreground : Color.foreground
+          foreground: root.lyricsOpen ? Color.accent : (root.bar ? root.bar.foreground : Color.foreground)
           horizontalPadding: Style.spacing.controlPaddingX
           verticalPadding: Style.spacing.controlPaddingY
           enabled: Boolean(root.activePlayer && root.title)

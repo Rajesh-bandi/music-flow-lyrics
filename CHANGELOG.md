@@ -4,6 +4,13 @@
 
 ### Fixed
 
+- **Lyrics button did nothing after marketplace installation** (`BarWidget.qml`,
+  `manifest.json`). Lyrics previously depended on a separately installed
+  companion plugin, while the marketplace installs the root manifest only.
+  The timed and plain lyric lookup and scrolling strip now live inside Music
+  Flow, so one marketplace install provides both media controls and lyrics.
+  The release manifest advances to 1.0.1.
+
 - **Visualizer settings (flow mode, Words/Pure Flow toggle) reset on every shell
   restart or bar repositioning** (`BarWidget.qml`, `scripts/configure_bar.py`).
   Root cause was twofold, confirmed by reading the installed Omarchy shell's own

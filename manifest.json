@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.rajesh-bandi.music-flow",
   "name": "Music Flow with Synced Lyrics",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Rajesh Bandi",
   "license": "MIT",
-  "description": "A PipeWire visualizer, media controller, source selector, and optional synchronized lyrics bar widget.",
+  "description": "A PipeWire visualizer and media controller with optional synchronized lyrics built into one bar widget.",
   "kinds": [
     "service",
     "bar-widget"

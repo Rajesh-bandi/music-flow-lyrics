@@ -16,7 +16,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Single source of truth for every id this script and the config-writer below
 # touch, so the plugin id never has to be duplicated (and drift) across files.
 PLUGIN_ID="io.github.rajesh-bandi.music-flow"
-LYRICS_PLUGIN_ID="io.github.rajesh-bandi.music-flow-lyrics"
 STOCK_PLUGIN_ID="omarchy.media"
 BAR_SECTION="left"
 BAR_ANCHOR_ID="omarchy.workspaces"
@@ -77,28 +76,10 @@ install_plugin_file "${SCRIPT_DIR}/manifest.json" "manifest.json"
 
 echo -e "${BLUE}==>${NC} Plugin files installed to: ${TARGET_DIR}"
 
-# Install the independently positioned lyrics companion beside the media plugin.
-LYRICS_DIR="${HOME}/.config/omarchy/plugins/${LYRICS_PLUGIN_ID}"
-mkdir -p "${LYRICS_DIR}"
-install_companion_file() {
-    local src="$1" name="$2" tmp
-    tmp=$(mktemp -p "${LYRICS_DIR}" ".${name}.XXXXXX")
-    PLUGIN_TMP_FILES+=("${tmp}")
-    cp -f "${src}" "${tmp}"
-    chmod 0644 "${tmp}"
-    mv -f "${tmp}" "${LYRICS_DIR}/${name}"
-}
-install_companion_file "${SCRIPT_DIR}/companions/synced-lyrics/BarWidget.qml" "BarWidget.qml"
-install_companion_file "${SCRIPT_DIR}/companions/synced-lyrics/manifest.json.in" "manifest.json"
-
 # 3. Catch manifest/schema problems before they get wired into the bar
 if command -v omarchy >/dev/null 2>&1; then
     if ! omarchy plugin validate "${TARGET_DIR}"; then
         echo -e "${RED}==> Error:${NC} plugin failed validation, aborting before touching your bar config." >&2
-        exit 1
-    fi
-    if ! omarchy plugin validate "${LYRICS_DIR}"; then
-        echo -e "${RED}==> Error:${NC} lyrics companion failed validation, aborting before touching your bar config." >&2
         exit 1
     fi
 fi
@@ -127,7 +108,7 @@ fi
 # 5. Safely configure Omarchy shell.json layout
 echo -e "${BLUE}==>${NC} Configuring status bar layout in ~/.config/omarchy/shell.json..."
 PLUGIN_ID="${PLUGIN_ID}" STOCK_PLUGIN_ID="${STOCK_PLUGIN_ID}" \
-LYRICS_PLUGIN_ID="${LYRICS_PLUGIN_ID}" BAR_SECTION="${BAR_SECTION}" BAR_ANCHOR_ID="${BAR_ANCHOR_ID}" \
+BAR_SECTION="${BAR_SECTION}" BAR_ANCHOR_ID="${BAR_ANCHOR_ID}" \
 python3 "${SCRIPT_DIR}/scripts/configure_bar.py" --action enable --bootstrap
 
 # 6. Restart Omarchy Shell

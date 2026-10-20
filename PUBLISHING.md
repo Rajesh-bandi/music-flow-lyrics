@@ -1,6 +1,6 @@
 # Publish Music Flow to the Omarchy plugin site
 
-The release folder is `/home/rajesh/Work/music-flow-lyrics`. The root manifest is the one marketplace listing; it includes the standalone lyrics plugin as an installer-managed companion.
+The release folder is `/home/rajesh/Work/music-flow-lyrics`. The root manifest is the single marketplace plugin and bundles media controls with the inline lyrics strip.
 
 ## 1. Create the public GitHub repository
 
@@ -46,7 +46,7 @@ _No response_
 
 ### Maintainer notes
 
-The full installer sets up both the root Music Flow plugin and the bundled Synced Lyrics companion. The marketplace's direct plugin install installs the root plugin; use the repository's install.sh for both widgets and automatic bar configuration.
+Music Flow includes media controls and the inline synced lyrics strip in one bar widget. The repository's install.sh also automates bar configuration for source installs.
 
 ### Submission checklist
 - [ ] The repository is public and contains installation and removal instructions.
@@ -62,4 +62,4 @@ The marketplace requires all five checklist boxes checked and asks the plugin ow
 
 After you create the issue, marketplace automation checks the repository and posts its result. Fix any reported problems in GitHub and edit the same issue to rerun validation. A maintainer must approve the exact validated commit before it appears on the site.
 
-The marketplace does not run `install.sh` for users. The README therefore documents the full setup command (`git clone`, then `./install.sh`) as well as the direct plugin install limitation.
+The marketplace installs the root plugin directly. The README also documents `git clone` and `./install.sh` for users who want source installation with automatic bar configuration.
